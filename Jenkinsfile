@@ -57,6 +57,41 @@ pipeline {
             }
         }
 
+                stage('Verificar Kubernetes') {
+            steps {
+                sh '''
+                echo "=== Kubernetes ==="
+                ls -R kubernetes
+                echo "Archivos encontrados:"
+                test -f kubernetes/base/deployment.yaml
+                test -f kubernetes/base/service.yaml
+                echo "Estructura de Kubernetes verificada."
+                '''
+            }
+        }
+
+        stage('Verificar Monitoring') {
+            steps {
+                sh '''
+                echo "=== Monitoring ==="
+                ls -R monitoring
+                test -f monitoring/prometheus/prometheus.yml
+                echo "Prometheus configurado."
+                '''
+            }
+        }
+
+        stage('Verificar Chaos Engineering') {
+            steps {
+                sh '''
+                echo "=== Chaos Engineering ==="
+                ls -R chaos
+                test -f chaos/experiments/pod-failure.yaml
+                echo "Experimento de Chaos encontrado."
+                '''
+            }
+        }
+
         stage('Eliminar Contenedor Anterior') {
             steps {
                 sh '''
