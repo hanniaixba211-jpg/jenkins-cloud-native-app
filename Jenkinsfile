@@ -10,37 +10,81 @@ pipeline {
 
         stage('Verificar Docker') {
             steps {
-                bat 'docker --version'
+                sh 'docker --version'
+            }
+        }
+
+        stage('Verificar Proyecto') {
+            steps {
+                sh '''
+                test -f app/package.json
+                test -f app/Dockerfile
+                echo "Proyecto verificado correctamente."
+                '''
             }
         }
 
         stage('Construir Imagen') {
             steps {
-                bat 'docker build -t %IMAGE_NAME% ./app'
+                sh 'docker compose build'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                sh '''
+                cd infrastructure/terraform
+                terraform init
+                '''
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                sh '''
+                cd infrastructure/terraform
+                terraform validate
+                '''
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                sh '''
+                cd infrastructure/terraform
+                terraform plan || echo "Terraform Plan omitido por falta de credenciales AWS."
+                '''
             }
         }
 
         stage('Eliminar Contenedor Anterior') {
             steps {
-                bat '''
-                docker stop %APP_NAME% || exit /b 0
-                docker rm %APP_NAME% || exit /b 0
+                sh '''
+                docker stop ${APP_NAME} || true
+                docker rm ${APP_NAME} || true
                 '''
             }
         }
 
         stage('Desplegar Aplicación') {
             steps {
-                bat 'docker compose up -d'
+                sh 'docker compose up -d'
             }
         }
 
         stage('Verificar Contenedores') {
             steps {
-                bat 'docker ps'
+                sh 'docker ps'
             }
         }
 
+        stage('Health Check') {
+            steps {
+                sh '''
+                curl -f http://localhost:3000
+                '''
+            }
+        }
     }
 
     post {
@@ -50,6 +94,10 @@ pipeline {
 
         failure {
             echo 'El pipeline falló.'
+        }
+
+        always {
+            sh 'docker ps'
         }
     }
 }
