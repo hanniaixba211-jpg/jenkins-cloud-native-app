@@ -79,11 +79,13 @@ pipeline {
         }
 
         stage('Health Check') {
-            steps {
-                sh '''
-                curl -f http://localhost:3000
-                '''
-            }
+        steps {
+        sh '''
+        echo "Esperando que la aplicación inicie..."
+        sleep 10
+        curl -f http://host.docker.internal:3000
+        '''
+         }
         }
     }
 
