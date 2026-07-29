@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+        options {
+        timestamps()
+    }
+
     environment {
         APP_NAME = "jenkins-cloud-native-app"
         IMAGE_NAME = "jenkins-cloud-native-app"
@@ -23,6 +27,15 @@ pipeline {
                 '''
             }
         }
+
+        stage('Mostrar Estructura del Proyecto') {
+    steps {
+        sh '''
+        echo "========== ESTRUCTURA DEL PROYECTO =========="
+        ls -R
+        '''
+    }
+}
 
         stage('Construir Imagen') {
             steps {
@@ -57,15 +70,26 @@ pipeline {
             }
         }
 
-                stage('Verificar Kubernetes') {
+                stage('Información del Entorno') {
             steps {
                 sh '''
-                echo "=== Kubernetes ==="
-                ls -R kubernetes
-                echo "Archivos encontrados:"
+                echo "========== VERSIONES =========="
+                docker --version
+                docker compose version
+                terraform --version
+                git --version
+                '''
+            }
+        }
+
+        stage('Verificar Kubernetes') {
+            steps {
+                sh '''
+                echo "========== KUBERNETES =========="
                 test -f kubernetes/base/deployment.yaml
                 test -f kubernetes/base/service.yaml
-                echo "Estructura de Kubernetes verificada."
+                ls -R kubernetes
+                echo "Kubernetes verificado correctamente."
                 '''
             }
         }
@@ -73,10 +97,10 @@ pipeline {
         stage('Verificar Monitoring') {
             steps {
                 sh '''
-                echo "=== Monitoring ==="
-                ls -R monitoring
+                echo "========== MONITORING =========="
                 test -f monitoring/prometheus/prometheus.yml
-                echo "Prometheus configurado."
+                ls -R monitoring
+                echo "Monitoring verificado correctamente."
                 '''
             }
         }
@@ -84,13 +108,14 @@ pipeline {
         stage('Verificar Chaos Engineering') {
             steps {
                 sh '''
-                echo "=== Chaos Engineering ==="
-                ls -R chaos
+                echo "========== CHAOS ENGINEERING =========="
                 test -f chaos/experiments/pod-failure.yaml
-                echo "Experimento de Chaos encontrado."
+                ls -R chaos
+                echo "Chaos Engineering verificado correctamente."
                 '''
             }
         }
+
 
         stage('Eliminar Contenedor Anterior') {
             steps {
@@ -122,6 +147,24 @@ pipeline {
         '''
          }
         }
+
+                stage('Resumen del Pipeline') {
+            steps {
+                sh '''
+                echo ""
+                echo "========================================"
+                echo "      PIPELINE CLOUD NATIVE"
+                echo "========================================"
+                echo "Docker............... OK"
+                echo "Terraform............ OK"
+                echo "Kubernetes........... OK"
+                echo "Monitoring........... OK"
+                echo "Chaos Engineering.... OK"
+                echo "Health Check......... OK"
+                echo "========================================"
+                '''
+            }
+        }
     }
 
     post {
@@ -134,7 +177,20 @@ pipeline {
         }
 
         always {
-            sh 'docker ps'
-        }
+    sh '''
+    echo "===== CONTENEDORES ====="
+    docker ps
+
+    echo ""
+
+    echo "===== IMÁGENES ====="
+    docker images
+
+    echo ""
+
+    echo "===== REDES ====="
+    docker network ls
+    '''
+}
     }
 }
